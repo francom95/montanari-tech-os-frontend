@@ -1,0 +1,90 @@
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.item {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+}
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.node {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.line {
+  flex: 1;
+  width: 2px;
+  background: var(--color-border-subtle);
+  margin: 4px 0;
+  min-height: 12px;
+}
+.card {
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  width: 100%;
+}
+.card:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg-app);
+}
+.cardMain {
+  flex: 1;
+  min-width: 0;
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.order {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.deps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 5px;
+}
+.locked {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 5px;
+  font-style: italic;
+}
+.cardRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
