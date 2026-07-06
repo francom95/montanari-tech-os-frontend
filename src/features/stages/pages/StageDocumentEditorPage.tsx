@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   LoadingState,
@@ -9,7 +9,7 @@ import {
   MarkdownPreview,
   useToast,
 } from '@/shared/components';
-import { AppError } from '@/shared/api';
+import { AppError, isForbidden } from '@/shared/api';
 import { useProjectContext } from '@/features/projects/layout/ProjectLayout';
 import { ExecutionPanel } from '@/features/executions/components/ExecutionPanel';
 import { useStage, useStages, useUpdateStageContent, useRequestReview } from '../hooks';
@@ -31,9 +31,17 @@ export function StageDocumentEditorPage() {
   const [tab, setTab] = useState<Tab>('edit');
   const [runOpen, setRunOpen] = useState(false);
 
+  // Seeds the draft once per stageKey — a background refetch of the SAME stage (e.g. another
+  // execution elsewhere in the project invalidating stageKeys.all) must never silently overwrite
+  // an in-progress, unsaved edit. Keyed by stageKey (not just a ref cleared on mount) so
+  // navigating to a different stage still loads that stage's own content.
+  const initializedForKey = useRef<string | null>(null);
   useEffect(() => {
-    if (stage) setDraft(stage.content ?? '');
-  }, [stage]);
+    if (stage && initializedForKey.current !== stageKey) {
+      initializedForKey.current = stageKey ?? null;
+      setDraft(stage.content ?? '');
+    }
+  }, [stage, stageKey]);
 
   if (isLoading) return <LoadingState label="Loading stage…" />;
   if (isError || !stage) return <ErrorState error={error} onRetry={() => refetch()} />;
@@ -41,14 +49,24 @@ export function StageDocumentEditorPage() {
   const locked = stage.status === 'LOCKED';
   const dirty = draft !== (stage.content ?? '');
   const canRun = stage.status === 'READY' || stage.status === 'REJECTED';
-  const canRequestReview = stage.status === 'WAITING_HUMAN_REVIEW';
+  // Requesting review only makes sense while the document is still editable and hasn't already
+  // been sent for review — DRAFT/READY, mirroring canRun's pre-execution states. It must NOT be
+  // true for WAITING_HUMAN_REVIEW (that would let a user re-request a review that's already
+  // queued) — the read-only banner below is what surfaces that state instead.
+  const canRequestReview = stage.status === 'DRAFT' || stage.status === 'READY';
 
   const save = async () => {
     try {
       await updateContent.mutateAsync({ content: draft });
       toast.success('Document saved.');
     } catch (err) {
-      toast.error(err instanceof AppError ? err.message : 'Could not save the document.');
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to edit this document."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not save the document.',
+      );
     }
   };
 
@@ -57,7 +75,13 @@ export function StageDocumentEditorPage() {
       await requestReview.mutateAsync({ comment: null });
       toast.success('Review requested. The stage is queued for a reviewer.');
     } catch (err) {
-      toast.error(err instanceof AppError ? err.message : 'Could not request review.');
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to request a review for this document."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not request review.',
+      );
     }
   };
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { tokenStore } from '@/shared/api';
+import { awaitPendingRefresh, tokenStore } from '@/shared/api';
 import type { UserResponse, UserRole } from '@/shared/api';
 import { authApi } from './api/authApi';
 
@@ -70,6 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return u;
       },
       logout: async () => {
+        // A concurrent 401 (e.g. background polling with an expired access token) can have the
+        // interceptor's single-flight refresh mid-rotation right now. Wait for it to settle
+        // before snapshotting the refresh token — otherwise we'd revoke the superseded token
+        // and leave the freshly-rotated one alive server-side.
+        await awaitPendingRefresh();
         const refreshToken = tokenStore.getRefresh();
         if (refreshToken) {
           await authApi.logout({ refreshToken, allDevices: false }).catch(() => undefined);

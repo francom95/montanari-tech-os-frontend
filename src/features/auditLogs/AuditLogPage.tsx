@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AppShell } from '@/app/layout/AppShell';
-import { LoadingState, ErrorState, EmptyState, Badge, DataTable, Button, type Column } from '@/shared/components';
+import { LoadingState, ErrorState, EmptyState, Badge, DataTable, Pagination, type Column } from '@/shared/components';
 import type { AuditLogResponse, AuditAction } from '@/shared/api';
 import { formatDateTime } from '@/shared/utils/format';
 import { useAuth } from '@/features/auth';
@@ -73,19 +73,7 @@ export function AuditLogPage() {
             getRowKey={(a) => a.id}
             empty={<EmptyState icon="receipt_long" title="No audit entries" body="Activity for this organization will appear here." />}
           />
-          {data && data.totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 16, alignItems: 'center' }}>
-              <Button size="sm" icon="chevron_left" disabled={data.first} onClick={() => setPage((p) => p - 1)}>
-                Prev
-              </Button>
-              <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-                Page {data.number + 1} of {data.totalPages}
-              </span>
-              <Button size="sm" iconRight="chevron_right" disabled={data.last} onClick={() => setPage((p) => p + 1)}>
-                Next
-              </Button>
-            </div>
-          )}
+          <Pagination data={data} onPageChange={setPage} />
         </>
       )}
     </AppShell>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Button, Icon, Badge, ModelTierPill, useToast } from '@/shared/components';
-import { AppError, isNotEnoughCredits, isExecutionBlocked } from '@/shared/api';
+import { AppError, isNotEnoughCredits, isExecutionBlocked, isForbidden } from '@/shared/api';
 import type { StageDocumentResponse, StageExecutionResponse } from '@/shared/api';
 import { formatNumber } from '@/shared/utils/format';
 import { useWallet } from '@/features/credits/hooks';
@@ -71,6 +71,8 @@ export function ExecutionPanel({
         setErrorMsg(err instanceof AppError ? err.message : 'Not enough credits to run this stage.');
       } else if (isExecutionBlocked(err)) {
         setErrorMsg(err instanceof AppError ? err.message : 'Execution is blocked by the Fable Gate.');
+      } else if (isForbidden(err)) {
+        setErrorMsg("You don't have permission to run this stage.");
       } else {
         setErrorMsg(err instanceof AppError ? err.message : 'Could not run the stage.');
       }

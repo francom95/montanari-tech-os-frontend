@@ -1,10 +1,16 @@
 import { useMemo, useState } from 'react';
-import { LoadingState, ErrorState, EmptyState, Badge, DataTable, Button, type Column } from '@/shared/components';
+import { LoadingState, ErrorState, EmptyState, Badge, DataTable, Pagination, type Column } from '@/shared/components';
 import type { CreditTransactionResponse } from '@/shared/api';
 import { formatNumber, relativeTime } from '@/shared/utils/format';
 import { useWallet, useTransactions } from '../hooks';
 import { CREDIT_TX_META } from '../labels';
 import styles from './credits.module.css';
+
+// Fallback for any CreditTransactionType not in the map (e.g. the frontend build is older than
+// the backend) — shows the raw type instead of throwing when destructuring an undefined lookup.
+function txMeta(type: CreditTransactionResponse['transactionType']) {
+  return CREDIT_TX_META[type] ?? { label: type, tone: 'neutral' as const, sign: '' as const };
+}
 
 /** Wallet cards + transaction ledger. `projectId` filters the ledger to one project's rows. */
 export function CreditsView({ projectId }: { projectId?: string }) {
@@ -23,7 +29,7 @@ export function CreditsView({ projectId }: { projectId?: string }) {
       header: 'Type',
       width: '1.1fr',
       render: (t) => {
-        const meta = CREDIT_TX_META[t.transactionType];
+        const meta = txMeta(t.transactionType);
         return <Badge tone={meta.tone} size="sm">{meta.label}</Badge>;
       },
     },
@@ -39,7 +45,7 @@ export function CreditsView({ projectId }: { projectId?: string }) {
       width: '0.8fr',
       align: 'end',
       render: (t) => {
-        const meta = CREDIT_TX_META[t.transactionType];
+        const meta = txMeta(t.transactionType);
         return (
           <span className="font-mono" style={{ fontSize: 13, fontWeight: 600 }}>
             {meta.sign}
@@ -70,11 +76,17 @@ export function CreditsView({ projectId }: { projectId?: string }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div className={styles.walletGrid}>
-        <WalletCard label="Available" value={wallet.data?.available} accent />
-        <WalletCard label="Reserved" value={wallet.data?.reserved} />
-        <WalletCard label="Balance" value={wallet.data?.balance} />
-      </div>
+      {wallet.isLoading ? (
+        <LoadingState label="Loading wallet…" />
+      ) : wallet.isError ? (
+        <ErrorState error={wallet.error} onRetry={() => wallet.refetch()} />
+      ) : (
+        <div className={styles.walletGrid}>
+          <WalletCard label="Available" value={wallet.data?.available} accent />
+          <WalletCard label="Reserved" value={wallet.data?.reserved} />
+          <WalletCard label="Balance" value={wallet.data?.balance} />
+        </div>
+      )}
 
       <div>
         <h2 className={styles.h2}>Transactions</h2>
@@ -90,19 +102,10 @@ export function CreditsView({ projectId }: { projectId?: string }) {
               getRowKey={(t) => t.id}
               empty={<EmptyState icon="receipt_long" title="No transactions yet" body="Credit activity will appear here as stages run." />}
             />
-            {!projectId && tx.data && tx.data.totalPages > 1 && (
-              <div className={styles.pager}>
-                <Button size="sm" icon="chevron_left" disabled={tx.data.first} onClick={() => setPage((p) => p - 1)}>
-                  Prev
-                </Button>
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-                  Page {tx.data.number + 1} of {tx.data.totalPages}
-                </span>
-                <Button size="sm" iconRight="chevron_right" disabled={tx.data.last} onClick={() => setPage((p) => p + 1)}>
-                  Next
-                </Button>
-              </div>
-            )}
+            {/* Not hidden for projectId: the transactions endpoint is org-wide and this view
+                only filters the current page client-side, so a project's rows can be on any
+                page — hiding the pager here would leave no way to reach them. */}
+            <Pagination data={tx.data} onPageChange={setPage} />
           </>
         )}
       </div>

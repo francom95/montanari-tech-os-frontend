@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Icon } from '../Icon';
 import styles from './toast.module.css';
 
@@ -30,11 +39,26 @@ const ACCENTS: Record<ToastKind, string> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
+
+  // Clears every pending auto-dismiss timer on unmount so a stale setToasts call never fires
+  // after teardown (e.g. a test unmounting shortly after triggering a toast).
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      pending.forEach(clearTimeout);
+      pending.clear();
+    };
+  }, []);
 
   const push = useCallback((kind: ToastKind, message: string) => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, kind, message }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
+    const timer = setTimeout(() => {
+      timers.current.delete(timer);
+      setToasts((t) => t.filter((x) => x.id !== id));
+    }, 4200);
+    timers.current.add(timer);
   }, []);
 
   const api = useMemo<ToastApi>(

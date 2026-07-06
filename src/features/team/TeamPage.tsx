@@ -16,7 +16,7 @@ import {
   type BadgeTone,
   type Column,
 } from '@/shared/components';
-import { AppError } from '@/shared/api';
+import { AppError, isForbidden } from '@/shared/api';
 import type { UserRole, UserStatus, UserResponse } from '@/shared/api';
 import { relativeTime, initialsFrom } from '@/shared/utils/format';
 import { authApi } from '@/features/auth';
@@ -80,7 +80,13 @@ export function TeamPage() {
       reset({ role: 'CLIENT_USER' });
       setOpen(false);
     } catch (err) {
-      toast.error(err instanceof AppError ? err.message : 'Could not create the user.');
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to invite users."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not create the user.',
+      );
     } finally {
       setSubmitting(false);
     }

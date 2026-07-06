@@ -7,7 +7,7 @@ import {
   EmptyState,
   Badge,
   DataTable,
-  Button,
+  Pagination,
   type Column,
 } from '@/shared/components';
 import type { HumanReviewResponse } from '@/shared/api';
@@ -41,7 +41,7 @@ export function ReviewQueuePage() {
       header: 'Status',
       width: '1fr',
       render: (r) => {
-        const m = REVIEW_STATUS_META[r.status];
+        const m = REVIEW_STATUS_META[r.status] ?? REVIEW_STATUS_META.PENDING;
         return <Badge tone={m.tone} icon={m.icon} size="sm">{m.label}</Badge>;
       },
     },
@@ -79,19 +79,7 @@ export function ReviewQueuePage() {
             onRowClick={(r) => navigate(`/internal/reviews/${r.id}`)}
             empty={<EmptyState icon="task_alt" title="Queue is clear" body="No stages are awaiting review right now." />}
           />
-          {data && data.totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 16, alignItems: 'center' }}>
-              <Button size="sm" icon="chevron_left" disabled={data.first} onClick={() => setPage((p) => p - 1)}>
-                Prev
-              </Button>
-              <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-                Page {data.number + 1} of {data.totalPages}
-              </span>
-              <Button size="sm" iconRight="chevron_right" disabled={data.last} onClick={() => setPage((p) => p + 1)}>
-                Next
-              </Button>
-            </div>
-          )}
+          <Pagination data={data} onPageChange={setPage} />
         </>
       )}
     </AppShell>

@@ -17,7 +17,6 @@ export const materialsApi = {
     form.append('file', file);
     return api
       .post<MaterialResponse>(base(projectId), form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => {
           if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
         },
@@ -29,11 +28,7 @@ export const materialsApi = {
     const form = new FormData();
     form.append('materialType', materialType);
     form.append('sourceUrl', sourceUrl);
-    return api
-      .post<MaterialResponse>(base(projectId), form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      .then((r) => r.data);
+    return api.post<MaterialResponse>(base(projectId), form).then((r) => r.data);
   },
 
   delete: (projectId: string, materialId: string) =>

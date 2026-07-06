@@ -27,8 +27,11 @@ export const api: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Endpoints that must never trigger the refresh-retry loop.
-const AUTH_BYPASS = ['/api/auth/login', '/api/auth/refresh', '/api/auth/register'];
+// Public, unauthenticated endpoints that must never trigger the refresh-retry loop or the
+// redirect-to-login fallback. Deliberately does NOT include /api/auth/register — despite the
+// name, that endpoint is an authenticated admin-only "invite a user" action (see TeamPage), so an
+// expired token on it should refresh-and-retry like any other authenticated request.
+const AUTH_BYPASS = ['/api/auth/login', '/api/auth/refresh'];
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = tokenStore.getAccess();
@@ -40,6 +43,21 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // ---- Single-flight refresh ----
 let refreshPromise: Promise<string> | null = null;
+
+/**
+ * Resolves once any in-flight token refresh has settled (success or failure). Logout must wait
+ * for this before reading the refresh token to revoke: if a concurrent 401 has the single-flight
+ * refresh mid-rotation, snapshotting the token too early would send the superseded token to the
+ * logout endpoint and leave the freshly-rotated one unrevoked server-side.
+ */
+export function awaitPendingRefresh(): Promise<void> {
+  return refreshPromise
+    ? refreshPromise.then(
+        () => undefined,
+        () => undefined,
+      )
+    : Promise.resolve();
+}
 
 async function refreshAccessToken(): Promise<string> {
   const refreshToken = tokenStore.getRefresh();
@@ -69,7 +87,7 @@ api.interceptors.response.use(
     const original = error.config as (AxiosRequestConfig & { _retried?: boolean }) | undefined;
     const status = error.response?.status;
     const url = original?.url ?? '';
-    const isBypass = AUTH_BYPASS.some((p) => url.includes(p));
+    const isBypass = AUTH_BYPASS.includes(url);
 
     if (status === 401 && original && !original._retried && !isBypass && tokenStore.getRefresh()) {
       original._retried = true;

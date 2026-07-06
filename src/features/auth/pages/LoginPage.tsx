@@ -35,8 +35,11 @@ export function LoginPage() {
     try {
       const tokens = await authApi.login(values);
       const user = await login(tokens.accessToken, tokens.refreshToken);
+      // params.get() already URL-decodes the value once — decoding it again here would throw on
+      // a value like "%25" (a lone "%" after the first decode) and, since that's inside this same
+      // try block, would falsely report "Could not sign in" even though login just succeeded.
       const from = params.get('from');
-      if (from) navigate(decodeURIComponent(from), { replace: true });
+      if (from) navigate(from, { replace: true });
       else navigate(INTERNAL_ROLES.includes(user.role) ? '/internal/reviews' : '/app/dashboard', {
         replace: true,
       });

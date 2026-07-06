@@ -11,7 +11,7 @@ import {
   StageStatusBadge,
   useToast,
 } from '@/shared/components';
-import { AppError } from '@/shared/api';
+import { AppError, isForbidden } from '@/shared/api';
 import { formatDateTime } from '@/shared/utils/format';
 import { useReview, useReviewDocument, useResolveReview } from '../hooks';
 import { REVIEW_STATUS_META } from '../labels';
@@ -43,7 +43,9 @@ export function ReviewDetailPage() {
     );
   }
 
-  const meta = REVIEW_STATUS_META[review.status];
+  // Falls back to PENDING's presentation for any status value not in the map, instead of
+  // throwing when destructuring an undefined lookup.
+  const meta = REVIEW_STATUS_META[review.status] ?? REVIEW_STATUS_META.PENDING;
   const pending = review.status === 'PENDING' || review.status === 'IN_REVIEW';
   const fee = HIGH_FEE_STAGES.includes(review.stageKey) ? 60 : 25;
 
@@ -53,7 +55,13 @@ export function ReviewDetailPage() {
       toast.success('Approved. Dependent stages are now unlocked.');
       navigate('/internal/reviews');
     } catch (err) {
-      toast.error(err instanceof AppError ? err.message : 'Could not approve.');
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to approve this review."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not approve.',
+      );
     }
   };
 
@@ -67,7 +75,13 @@ export function ReviewDetailPage() {
       toast.success('Rejected. The stage is returned to the client for changes.');
       navigate('/internal/reviews');
     } catch (err) {
-      toast.error(err instanceof AppError ? err.message : 'Could not reject.');
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to reject this review."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not reject.',
+      );
     }
   };
 

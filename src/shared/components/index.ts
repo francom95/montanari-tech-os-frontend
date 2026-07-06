@@ -7,6 +7,7 @@ export { Badge } from './Badge';
 export type { BadgeTone } from './Badge';
 export { DataTable } from './DataTable';
 export type { Column } from './DataTable';
+export { Pagination } from './Pagination';
 export { LoadingState } from './LoadingState';
 export { EmptyState } from './EmptyState';
 export { ErrorState } from './ErrorState';
