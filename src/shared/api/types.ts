@@ -76,10 +76,13 @@ export type ModelTier =
 export type StageExecutionStatus =
   | 'PENDING'
   | 'RUNNING'
+  | 'AWAITING_IMPORT'
   | 'SUCCEEDED'
   | 'FAILED'
   | 'TIMED_OUT'
   | 'CANCELLED';
+
+export type ExecutionMode = 'AUTOMATIC' | 'MANUAL';
 
 export type CreditTransactionType =
   | 'TOP_UP'
@@ -191,6 +194,7 @@ export interface UserResponse {
   lastName: string;
   role: UserRole;
   status: UserStatus;
+  manualExecutionEnabled: boolean;
   createdAt: string;
 }
 
@@ -338,11 +342,40 @@ export interface StageExecutionResponse {
   stageDocumentId: string;
   modelTier: ModelTier;
   status: StageExecutionStatus;
+  executionMode: ExecutionMode;
   estimatedCredits: number;
   consumedCredits: number;
   errorMessage: string | null;
   startedAt: string;
   finishedAt: string | null;
+}
+
+// ---- Manual (subscription-delegated) execution ----
+
+export interface ManualExportRequest {
+  highAmbiguity?: boolean | null;
+  contradictions?: boolean | null;
+  criticalReview?: boolean | null;
+}
+
+export interface ManualExecutionExportResponse {
+  execution: StageExecutionResponse;
+  bundleMarkdown: string;
+  suggestedFileName: string;
+}
+
+export interface ManualBundleResponse {
+  bundleMarkdown: string;
+  suggestedFileName: string;
+  status: StageExecutionStatus;
+}
+
+export interface ManualImportRequest {
+  content: string;
+}
+
+export interface UpdateManualExecutionRequest {
+  enabled: boolean;
 }
 
 // ---- Credits ----
@@ -440,4 +473,10 @@ export interface AuditLogResponse {
 
 // ---- Project reports (living MD reports) ----
 
-export type ProjectReportKey = 'MODEL_DELEGATION' | 'FABLE_GATE_REPORT';
+export type ProjectReportKey = 'MODEL_DELEGATION' | 'FABLE_GATE_REPORT' | 'CLAUDE_MD';
+
+export interface ProjectReportResponse {
+  reportKey: ProjectReportKey;
+  content: string;
+  updatedAt: string;
+}

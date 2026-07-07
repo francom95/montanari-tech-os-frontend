@@ -43,6 +43,7 @@ export const INTERNAL_NAV: NavGroup[] = [
     items: [
       { label: 'Stage templates', icon: 'category', to: '/internal/stage-templates', roles: ['MT_ADMIN', 'SYSTEM_ADMIN'] },
       { label: 'Model policies', icon: 'tune', to: '/internal/model-policies', roles: ['MT_ADMIN', 'SYSTEM_ADMIN'] },
+      { label: 'Users', icon: 'group', to: '/internal/users', roles: ['MT_ADMIN', 'SYSTEM_ADMIN'] },
       { label: 'Audit log', icon: 'receipt_long', to: '/internal/audit-logs', roles: ['MT_ADMIN', 'SYSTEM_ADMIN'] },
     ],
   },

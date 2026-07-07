@@ -12,6 +12,7 @@ import {
 import { AppError, isForbidden } from '@/shared/api';
 import { useProjectContext } from '@/features/projects/layout/ProjectLayout';
 import { ExecutionPanel } from '@/features/executions/components/ExecutionPanel';
+import { useExecutions } from '@/features/executions/hooks';
 import { useStage, useStages, useUpdateStageContent, useRequestReview } from '../hooks';
 import styles from './editor.module.css';
 
@@ -24,6 +25,9 @@ export function StageDocumentEditorPage() {
 
   const { data: stage, isLoading, isError, error, refetch } = useStage(project.id, stageKey);
   const { data: allStages } = useStages(project.id);
+  // Cache hit — ProjectLayout already runs this query; needed here to surface a manual execution
+  // that is awaiting its imported result (the stage itself just shows RUNNING).
+  const { data: executions } = useExecutions(project.id);
   const updateContent = useUpdateStageContent(project.id, stageKey ?? '');
   const requestReview = useRequestReview(project.id, stageKey ?? '');
 
@@ -49,6 +53,14 @@ export function StageDocumentEditorPage() {
   const locked = stage.status === 'LOCKED';
   const dirty = draft !== (stage.content ?? '');
   const canRun = stage.status === 'READY' || stage.status === 'REJECTED';
+  // The stage document shows plain RUNNING while a manual execution waits for its import — the
+  // execution list is what disambiguates, so the user gets a way back into the import flow.
+  const awaitingManualImport = executions?.some(
+    (e) =>
+      e.stageDocumentId === stage.id &&
+      e.executionMode === 'MANUAL' &&
+      e.status === 'AWAITING_IMPORT',
+  );
   // Requesting review only makes sense while the document is still editable and hasn't already
   // been sent for review — DRAFT/READY, mirroring canRun's pre-execution states. It must NOT be
   // true for WAITING_HUMAN_REVIEW (that would let a user re-request a review that's already
@@ -125,6 +137,24 @@ export function StageDocumentEditorPage() {
               Dependent stages stay locked until a reviewer approves this output.
             </div>
           </div>
+        </div>
+      )}
+
+      {awaitingManualImport && (
+        <div className={styles.reviewBanner}>
+          <Icon name="ios_share" size={20} color="var(--color-info-text)" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)' }}>
+              This stage is awaiting a manual result import
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+              The prompt bundle was exported — run it in your Claude subscription, then import the
+              reply (or cancel to release the reserved credits).
+            </div>
+          </div>
+          <Button size="sm" icon="upload" onClick={() => setRunOpen(true)}>
+            Continue import
+          </Button>
         </div>
       )}
 

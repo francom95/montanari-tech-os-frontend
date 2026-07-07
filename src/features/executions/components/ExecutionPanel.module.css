@@ -59,3 +59,20 @@
   font-size: 13px;
   color: var(--color-danger-text);
 }
+.importTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  resize: vertical;
+}
+.importTextarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}

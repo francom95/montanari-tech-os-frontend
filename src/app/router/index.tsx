@@ -21,6 +21,7 @@ import { TeamPage } from '@/features/team/TeamPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { StageTemplatesPage } from '@/features/admin/StageTemplatesPage';
 import { ModelPoliciesPage } from '@/features/admin/ModelPoliciesPage';
+import { InternalUsersPage } from '@/features/admin/InternalUsersPage';
 
 const CLIENT_ROLES: UserRole[] = ['CLIENT_USER', 'CLIENT_ADMIN'];
 const INTERNAL_ROLES: UserRole[] = ['MT_REVIEWER', 'MT_ADMIN', 'SYSTEM_ADMIN'];
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
   { path: '/internal/reviews/:reviewId', element: internalGuard(<ReviewDetailPage />) },
   { path: '/internal/stage-templates', element: internalGuard(<StageTemplatesPage />, ADMIN_ROLES) },
   { path: '/internal/model-policies', element: internalGuard(<ModelPoliciesPage />, ADMIN_ROLES) },
+  { path: '/internal/users', element: internalGuard(<InternalUsersPage />, ADMIN_ROLES) },
   { path: '/internal/audit-logs', element: internalGuard(<AuditLogPage />, ADMIN_ROLES) },
 
   { path: '*', element: <Navigate to="/" replace /> },
