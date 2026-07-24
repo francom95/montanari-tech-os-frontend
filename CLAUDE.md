@@ -86,8 +86,5 @@ Rules:
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- **Update after EVERY action, not just at commit time**: git hooks rebuild the graph on
-  commit/checkout, but that leaves it stale for the entire session while you edit without
-  committing. So after EVERY Edit/Write (or any action that changes a file in this repo), run
-  `graphify update .` immediately (AST-only, no API cost) — don't wait for a commit or for a query
-  to come up empty before noticing it's stale.
+- Update: the graph rebuilds on its own at commit/checkout time (git hooks). No need to update it
+  by hand after every edit.
