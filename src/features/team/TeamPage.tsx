@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { AppShell } from '@/app/layout/AppShell';
 import {
   Modal,
+  ConfirmDialog,
   Button,
   Badge,
   DataTable,
@@ -20,15 +21,18 @@ import { AppError, isForbidden } from '@/shared/api';
 import type { UserRole, UserStatus, UserResponse } from '@/shared/api';
 import { relativeTime, initialsFrom } from '@/shared/utils/format';
 import { authApi } from '@/features/auth';
-import { useOrgUsers, useInvalidateUsers } from './hooks';
+import { useAuth } from '@/features/auth/AuthContext';
+import { useOrgUsers, useInvalidateUsers, useUpdateUserRole, useUpdateUserStatus } from './hooks';
 import styles from './team.module.css';
 
 /**
  * Organization user management (CLIENT_ADMIN).
  *
- * Contract status: listing (GET /api/users, org-scoped) and creation (POST /api/auth/register,
- * admin-gated) are both backed. Role changes and deactivation still have no endpoint in V1 —
- * FUTURE_BACKEND_REQUIRED, deferred to V2 per the Fase 7 triage (see EXECUTION_ROADMAP.md).
+ * Contract status: listing (GET /api/users), creation (POST /api/auth/register), role changes
+ * (PATCH /api/users/:id/role) and activation/deactivation (PATCH /api/users/:id/status) are all
+ * backed — all org-scoped, all admin-gated. A caller can never change their own role or status
+ * (server-enforced; this page also hides the affordance for the row that is you, so there's no
+ * dead button to click).
  */
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -60,10 +64,51 @@ const STATUS_TONE: Record<UserStatus, BadgeTone> = {
 
 export function TeamPage() {
   const toast = useToast();
+  const { user: currentUser } = useAuth();
   const { data: users, isLoading, isError, error, refetch } = useOrgUsers();
   const invalidateUsers = useInvalidateUsers();
+  const updateRole = useUpdateUserRole();
+  const updateStatus = useUpdateUserStatus();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<UserResponse | null>(null);
+
+  const changeRole = async (targetUser: UserResponse, role: UserRole) => {
+    try {
+      await updateRole.mutateAsync({ userId: targetUser.id, role });
+      toast.success(`${targetUser.email} is now ${ROLE_LABEL[role] ?? role}.`);
+    } catch (err) {
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to change this user's role."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not change the role.',
+      );
+    }
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusTarget) return;
+    const nextStatus: UserStatus = statusTarget.status === 'DISABLED' ? 'ACTIVE' : 'DISABLED';
+    try {
+      await updateStatus.mutateAsync({ userId: statusTarget.id, status: nextStatus });
+      toast.success(
+        nextStatus === 'DISABLED'
+          ? `${statusTarget.email} was deactivated.`
+          : `${statusTarget.email} was reactivated.`,
+      );
+      setStatusTarget(null);
+    } catch (err) {
+      toast.error(
+        isForbidden(err)
+          ? "You don't have permission to change this user's status."
+          : err instanceof AppError
+            ? err.message
+            : 'Could not change the status.',
+      );
+    }
+  };
   const {
     register,
     handleSubmit,
@@ -112,8 +157,24 @@ export function TeamPage() {
     {
       key: 'role',
       header: 'Role',
-      width: '1fr',
-      render: (u) => <Badge size="sm">{ROLE_LABEL[u.role] ?? u.role}</Badge>,
+      width: '1.2fr',
+      render: (u) =>
+        u.id === currentUser?.id || !ROLE_OPTIONS.some((o) => o.value === u.role) ? (
+          <Badge size="sm">{ROLE_LABEL[u.role] ?? u.role}</Badge>
+        ) : (
+          <select
+            className={styles.rowSelect}
+            value={u.role}
+            disabled={updateRole.isPending}
+            onChange={(e) => changeRole(u, e.target.value as UserRole)}
+          >
+            {ROLE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        ),
     },
     {
       key: 'status',
@@ -129,10 +190,21 @@ export function TeamPage() {
       key: 'created',
       header: 'Added',
       width: '0.9fr',
-      align: 'end',
       render: (u) => (
         <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>{relativeTime(u.createdAt)}</span>
       ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      width: '0.9fr',
+      align: 'end',
+      render: (u) =>
+        u.id === currentUser?.id ? null : (
+          <Button size="sm" variant="ghost" onClick={() => setStatusTarget(u)}>
+            {u.status === 'DISABLED' ? 'Reactivate' : 'Deactivate'}
+          </Button>
+        ),
     },
   ];
 
@@ -208,6 +280,21 @@ export function TeamPage() {
           </p>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={statusTarget != null}
+        onClose={() => setStatusTarget(null)}
+        onConfirm={confirmStatusChange}
+        title={statusTarget?.status === 'DISABLED' ? 'Reactivate user?' : 'Deactivate user?'}
+        body={
+          statusTarget?.status === 'DISABLED'
+            ? `${statusTarget?.email ?? ''} will be able to sign in again immediately.`
+            : `${statusTarget?.email ?? ''} will be signed out and unable to sign in until reactivated.`
+        }
+        confirmLabel={statusTarget?.status === 'DISABLED' ? 'Reactivate' : 'Deactivate'}
+        destructive={statusTarget?.status !== 'DISABLED'}
+        loading={updateStatus.isPending}
+      />
     </AppShell>
   );
 }

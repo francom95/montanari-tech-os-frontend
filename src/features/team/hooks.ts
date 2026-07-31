@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { UserRole, UserStatus } from '@/shared/api';
 import { usersApi } from './api/usersApi';
 
 export const userKeys = {
@@ -16,4 +17,22 @@ export function useOrgUsers() {
 export function useInvalidateUsers() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: userKeys.list });
+}
+
+export function useUpdateUserRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
+      usersApi.updateRole(userId, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.list }),
+  });
+}
+
+export function useUpdateUserStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, status }: { userId: string; status: UserStatus }) =>
+      usersApi.updateStatus(userId, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.list }),
+  });
 }

@@ -61,3 +61,17 @@
   color: var(--color-text-muted);
   margin-top: 2px;
 }
+
+.rowSelect {
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.rowSelect:disabled {
+  opacity: 0.6;
+}
